@@ -1,0 +1,41 @@
+version: "3.8"
+services:
+  db:
+    image: mysql:5.7
+    volumes:
+      - db:/var/lib/mysql
+  api:
+    build:
+      context: api
+      target: deps
+    user: node
+    working_dir: /usr/src/api
+    volumes:
+      - ./api:/usr/src/api
+    depends_on:
+      - db
+    restart: on-failure
+    command: >
+      sh -c "yarn &&
+             npx sequelize-cli db:migrate:undo:all &&
+             npx sequelize-cli db:migrate &&
+             npx sequelize-cli db:seed:all &&
+             yarn build &&
+             yarn start:prod"
+  admin:
+    build:
+      context: admin
+      target: deps
+    user: node
+    working_dir: /usr/src/admin
+    volumes:
+      - ./admin:/usr/src/admin
+    depends_on:
+      - api
+    restart: on-failure
+    command: >
+      sh -c "yarn &&
+             yarn build &&
+             yarn start"
+volumes:
+  db:
